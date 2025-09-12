@@ -61,7 +61,7 @@ interface AppState {
 
 const VERSION = "CaujaralCanvas-Macroprocesos-v6" as const;
 const DEFAULT_CAPTION =
-  "Macroprocesos y retos clave — Validar macroprocesos (estratégicos, misionales, soporte), brechas y capacidades críticas (90 min)";
+  "Macroprocesos y retos clave — Perfiles, recorridos y momentos de verdad (90 min)";
 const SUGERIDOS = [
   "Socio golfista",
   "Familiar con niños",
