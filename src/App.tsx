@@ -4,15 +4,14 @@ import { useEffect, useState, type ChangeEvent, type ReactNode } from "react";
  * CAUJARAL — 2) Macroprocesos y retos clave (90 min)
  * Tema oscuro (paleta de referencia) · Exportar TXT legible
  *
- * Cambios aplicados:
+ * Cambios aplicados (v6):
  * - Paleta: fondo #0b1220 · cards #0e1726 · controles #0f1b2e · bordes #22314a
  * - Línea superior 3px (cian→azul→fucsia) en header y cards
  * - ❌ Eliminado botón Importar
  * - ✅ SID por pestaña (sessionStorage) + autosave/localStorage por SID
- * - ✅ Carga automática desde localStorage si existe
+ * - ✅ Carga automática desde localStorage si existe (normaliza y descarta campos obsoletos)
  * - 🔤 D subtítulo: “Tres momentos donde la experiencia se define.”
- * - ✍️ F con labels fuera de los campos
- * - 🛠️ Fix TS: tipado de children y eliminación de componente no utilizado
+ * - ❌ Eliminada SECCIÓN F — Declaración estratégica del grupo (UI, estado y export)
  */
 
 type UUID = string;
@@ -50,12 +49,6 @@ interface MomentoVerdad {
   capacidadAsociada: string;
 }
 
-interface Declaracion {
-  aspiracion: string;
-  mejorar: string;
-  resolver: string;
-}
-
 interface AppState {
   version: string;
   meta: Meta;
@@ -63,11 +56,10 @@ interface AppState {
     A_perfiles: PerfilSocio[];
     B_recorrido: RecorridoRow[];
     D_momentos: MomentoVerdad[];
-    F_declaracion: Declaracion;
   };
 }
 
-const VERSION = "CaujaralCanvas-Macroprocesos-v5" as const;
+const VERSION = "CaujaralCanvas-Macroprocesos-v6" as const;
 const DEFAULT_CAPTION =
   "Macroprocesos y retos clave — Validar macroprocesos (estratégicos, misionales, soporte), brechas y capacidades críticas (90 min)";
 const SUGERIDOS = [
@@ -141,7 +133,6 @@ const initialState = (sid: string): AppState => ({
         capacidadAsociada: "",
       },
     ],
-    F_declaracion: { aspiracion: "", mejorar: "", resolver: "" },
   },
 });
 
@@ -196,22 +187,6 @@ function toReadableTxt(s: AppState): string {
       } — Capacidad: ${m.capacidadAsociada || "-"}`
     );
   });
-  L.push("");
-
-  L.push("🤝 F) Declaración estratégica del grupo");
-  L.push(
-    `  Si el Club Caujaral quiere ser reconocido por: ${
-      s.parte1.F_declaracion.aspiracion || "[…]"
-    },`
-  );
-  L.push(
-    `  entonces necesitamos mejorar: ${
-      s.parte1.F_declaracion.mejorar || "[…]"
-    },`
-  );
-  L.push(
-    `  y resolver cuanto antes: ${s.parte1.F_declaracion.resolver || "[…]"}.`
-  );
   L.push("");
   L.push("FIN");
   return L.join("\n");
@@ -297,7 +272,6 @@ const SectionCard = ({
             </p>
           )}
         </div>
-        {/* sin símbolo # a la derecha */}
       </div>
       <div className="p-4 md:p-6 text-slate-200">{children}</div>
     </div>
@@ -359,17 +333,42 @@ export default function MacroprocesosCanvas() {
     return s;
   });
 
-  /** Estado inicial: cargar si existe, si no crear */
+  /** Estado inicial: cargar si existe, si no crear (normaliza shape sin F) */
   const [state, setState] = useState<AppState>(() => {
     const key = `caujaral_macro_${sid}`;
     const saved = localStorage.getItem(key);
+    const init = initialState(sid);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as AppState;
-        return parsed;
+        const parsed: any = JSON.parse(saved);
+        return {
+          version: VERSION,
+          meta: parsed?.meta ?? {
+            titulo: DEFAULT_CAPTION,
+            sessionId: sid,
+            lastSavedAt: null,
+          },
+          parte1: {
+            A_perfiles:
+              Array.isArray(parsed?.parte1?.A_perfiles) &&
+              parsed.parte1.A_perfiles.length
+                ? parsed.parte1.A_perfiles
+                : init.parte1.A_perfiles,
+            B_recorrido:
+              Array.isArray(parsed?.parte1?.B_recorrido) &&
+              parsed.parte1.B_recorrido.length
+                ? parsed.parte1.B_recorrido
+                : init.parte1.B_recorrido,
+            D_momentos:
+              Array.isArray(parsed?.parte1?.D_momentos) &&
+              parsed.parte1.D_momentos.length
+                ? parsed.parte1.D_momentos
+                : init.parte1.D_momentos,
+          },
+        };
       } catch {}
     }
-    return initialState(sid);
+    return init;
   });
 
   // Autosave por SID
@@ -382,16 +381,7 @@ export default function MacroprocesosCanvas() {
     localStorage.setItem(key, JSON.stringify(next));
   }, [state]);
 
-  /* Helpers genéricos por path */
-  const updateValue = (path: string[], value: unknown) => {
-    setState((prev) => {
-      const clone: any = structuredClone(prev);
-      let ref = clone as any;
-      for (let i = 0; i < path.length - 1; i++) ref = ref[path[i]];
-      ref[path[path.length - 1]] = value;
-      return clone;
-    });
-  };
+  /* Helpers genéricos por path (sin updateValue ya que no se usa) */
   const updateField = (
     path: string[],
     id: UUID,
@@ -555,8 +545,8 @@ export default function MacroprocesosCanvas() {
                 Diseñar y validar el viaje del socio y sus macroprocesos
               </h2>
               <p className="text-sm text-slate-300 max-w-3xl">
-                Identifiquen perfiles, recorridos, momentos de verdad y
-                concreten una declaración estratégica del grupo.
+                Identifiquen perfiles, recorridos y definan los tres momentos de
+                verdad clave para priorizar capacidades.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -922,64 +912,6 @@ export default function MacroprocesosCanvas() {
               >
                 + Agregar momento
               </ToolbarButton>
-            </div>
-          </SectionCard>
-
-          {/* F — Declaración estratégica (labels fuera) */}
-          <SectionCard
-            anchor="f-declaracion"
-            emoji="🤝"
-            title="SECCIÓN F — Declaración estratégica del grupo"
-            subtitle="Aseguren que contenga una capacidad organizativa crítica como eje."
-          >
-            <div className="space-y-4">
-              <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  Si el Club Caujaral quiere ser reconocido por…
-                </label>
-                <TextArea
-                  value={state.parte1.F_declaracion.aspiracion}
-                  onChange={(e) =>
-                    updateValue(
-                      ["parte1", "F_declaracion", "aspiracion"],
-                      e.target.value
-                    )
-                  }
-                  placeholder="Escribe la aspiración…"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  …entonces necesitamos mejorar…
-                </label>
-                <TextArea
-                  value={state.parte1.F_declaracion.mejorar}
-                  onChange={(e) =>
-                    updateValue(
-                      ["parte1", "F_declaracion", "mejorar"],
-                      e.target.value
-                    )
-                  }
-                  placeholder="Escribe la capacidad a fortalecer…"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm text-slate-300">
-                  …y resolver cuanto antes…
-                </label>
-                <TextArea
-                  value={state.parte1.F_declaracion.resolver}
-                  onChange={(e) =>
-                    updateValue(
-                      ["parte1", "F_declaracion", "resolver"],
-                      e.target.value
-                    )
-                  }
-                  placeholder="Escribe la barrera o problema urgente…"
-                />
-              </div>
             </div>
           </SectionCard>
         </div>
