@@ -493,8 +493,7 @@ export default function MacroprocesosCanvas() {
                   Macroprocesos y Retos Clave (Parte 2)
                 </h1>
                 <p className="text-xs md:text-sm text-slate-300">
-                  Validar macroprocesos (estratégicos, misionales, soporte),
-                  brechas y capacidades críticas · 90 min
+                  Perfiles, recorridos y momentos de verdad · 90 min
                 </p>
               </div>
             </div>
