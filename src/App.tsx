@@ -794,7 +794,7 @@ export default function MacroprocesosCanvas() {
           <SectionCard
             anchor="d-momentos"
             emoji="🌟"
-            title="SECCIÓN D — Momentos de Verdad"
+            title="SECCIÓN C — Momentos de Verdad"
             subtitle="Tres momentos donde la experiencia se define."
           >
             <div className="overflow-auto">
